@@ -596,14 +596,14 @@ class CTP528(CatPhanModule):
             boundaries = boundaries_600
 
         rois = OrderedDict()
-        rois['region 1'] = {'start': boundaries[0], 'end': boundaries[1], 'num peaks': 2, 'num valleys': 1, 'peak spacing': 0.021, 'gap size (cm)': 0.5, 'lp/mm': 0.2}
-        rois['region 2'] = {'start': boundaries[1], 'end': boundaries[2], 'num peaks': 3, 'num valleys': 2, 'peak spacing': 0.01, 'gap size (cm)': 0.25, 'lp/mm': 0.4}
-        rois['region 3'] = {'start': boundaries[2], 'end': boundaries[3], 'num peaks': 4, 'num valleys': 3, 'peak spacing': 0.006, 'gap size (cm)': 0.167, 'lp/mm': 0.6}
-        rois['region 4'] = {'start': boundaries[3], 'end': boundaries[4], 'num peaks': 4, 'num valleys': 3, 'peak spacing': 0.00557, 'gap size (cm)': 0.125, 'lp/mm': 0.8}
-        rois['region 5'] = {'start': boundaries[4], 'end': boundaries[5], 'num peaks': 4, 'num valleys': 3, 'peak spacing': 0.004777, 'gap size (cm)': 0.1, 'lp/mm': 1.0}
-        rois['region 6'] = {'start': boundaries[5], 'end': boundaries[6], 'num peaks': 5, 'num valleys': 4, 'peak spacing': 0.00398, 'gap size (cm)': 0.083, 'lp/mm': 1.2}
-        rois['region 7'] = {'start': boundaries[6], 'end': boundaries[7], 'num peaks': 5, 'num valleys': 4, 'peak spacing': 0.00358, 'gap size (cm)': 0.071, 'lp/mm': 1.4}
-        rois['region 8'] = {'start': boundaries[7], 'end': boundaries[8], 'num peaks': 5, 'num valleys': 4, 'peak spacing': 0.0027866, 'gap size (cm)': 0.063, 'lp/mm': 1.6}
+        rois['region 1'] = {'start': boundaries[0], 'end': boundaries[1], 'num peaks': 2, 'num valleys': 1, 'peak spacing': 0.021, 'gap size (cm)': 0.5, 'lp/mm': 0.1}
+        rois['region 2'] = {'start': boundaries[1], 'end': boundaries[2], 'num peaks': 3, 'num valleys': 2, 'peak spacing': 0.01, 'gap size (cm)': 0.25, 'lp/mm': 0.2}
+        rois['region 3'] = {'start': boundaries[2], 'end': boundaries[3], 'num peaks': 4, 'num valleys': 3, 'peak spacing': 0.006, 'gap size (cm)': 0.167, 'lp/mm': 0.3}
+        rois['region 4'] = {'start': boundaries[3], 'end': boundaries[4], 'num peaks': 4, 'num valleys': 3, 'peak spacing': 0.00557, 'gap size (cm)': 0.125, 'lp/mm': 0.4}
+        rois['region 5'] = {'start': boundaries[4], 'end': boundaries[5], 'num peaks': 4, 'num valleys': 3, 'peak spacing': 0.004777, 'gap size (cm)': 0.1, 'lp/mm': 0.5}
+        rois['region 6'] = {'start': boundaries[5], 'end': boundaries[6], 'num peaks': 5, 'num valleys': 4, 'peak spacing': 0.00398, 'gap size (cm)': 0.083, 'lp/mm': 0.6}
+        rois['region 7'] = {'start': boundaries[6], 'end': boundaries[7], 'num peaks': 5, 'num valleys': 4, 'peak spacing': 0.00358, 'gap size (cm)': 0.071, 'lp/mm': 0.7}
+        rois['region 8'] = {'start': boundaries[7], 'end': boundaries[8], 'num peaks': 5, 'num valleys': 4, 'peak spacing': 0.0027866, 'gap size (cm)': 0.063, 'lp/mm': 0.8}
         return rois
 
     @property
@@ -847,7 +847,7 @@ class CTP515(CatPhanModule):
     @property
     def overall_passed(self):
         """Whether there were enough low contrast ROIs "seen"."""
-        return sum(roi.passed_constant for roi in self.rois.values()) >= self.tolerance
+        return sum(roi.passed_cnr_constant for roi in self.rois.values()) >= self.tolerance
 
     def plot_contrast(self, axis=None):
         """Plot the contrast constant.
@@ -1119,10 +1119,10 @@ class CatPhanBase:
                 # determine if the profile contains both low and high values and that most values are the same
                 low_end, high_end = np.percentile(prof, [2, 98])
                 median = np.median(prof)
-                if (low_end < median - 400) and (high_end > median + 400) and (
-                                np.percentile(prof, 80) - np.percentile(prof, 20) < 100):
+                middle_variation = np.percentile(prof, 80) - np.percentile(prof, 20)
+                variation_limit = max(100, self.dicom_stack.metadata.SliceThickness*-100+300)
+                if (low_end < median - 400) and (high_end > median + 400) and (middle_variation < variation_limit):
                     hu_slices.append(image_number)
-                    #print(image_number)
 
         if not hu_slices:
             raise ValueError("No slices were found that resembled the HU linearity module")

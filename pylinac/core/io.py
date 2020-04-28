@@ -2,11 +2,11 @@
 import os
 import os.path as osp
 import struct
+import zipfile
 from tempfile import TemporaryDirectory
 from typing import Callable, List
 from urllib.error import HTTPError, URLError
-from urllib.request import urlretrieve, urlopen
-import zipfile
+from urllib.request import urlopen, urlretrieve
 
 import pydicom
 from tqdm import tqdm
@@ -55,7 +55,7 @@ def is_dicom_image(file: str) -> bool:
             img.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
         img.pixel_array
         result = True
-    except (AttributeError, TypeError, struct.error):
+    except (AttributeError, TypeError, KeyError, struct.error):
         pass
     return result
 
