@@ -1,30 +1,31 @@
 """This module holds classes for image loading and manipulation."""
 import copy
+import os
+import os.path as osp
+import re
 from collections import Counter
 from datetime import datetime
 from functools import lru_cache
 from io import BytesIO
-import re
-import os.path as osp
-import os
-from typing import Union, Sequence, List, Any, Tuple, Optional
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
-import pydicom
-from pydicom.errors import InvalidDicomError
 import matplotlib.pyplot as plt
 import numpy as np
-from PIL import Image as pImage
-from scipy import ndimage
+import pydicom
 import scipy.ndimage.filters as spf
+from PIL import Image as pImage
+from pydicom.errors import InvalidDicomError
+from scipy import ndimage
 from skimage.transform import resize
 
-from .utilities import is_close, minmax_scale
+from ..settings import PATH_TRUNCATION_LENGTH, get_dicom_cmap
 from .decorators import type_accept, value_accept
 from .geometry import Point
-from .io import get_url, TemporaryZipDirectory, retrieve_filenames, is_dicom_image, retrieve_dicom_file
+from .io import (TemporaryZipDirectory, get_url, is_dicom_image,
+                 retrieve_dicom_file, retrieve_filenames)
 from .profile import stretch as stretcharray
 from .typing import NumberLike
-from ..settings import get_dicom_cmap, PATH_TRUNCATION_LENGTH
+from .utilities import is_close, minmax_scale
 
 ARRAY = 'Array'
 DICOM = 'DICOM'
@@ -704,7 +705,7 @@ class DicomImage(BaseImage):
         if dtype is not None:
             self.array = ds.pixel_array.astype(dtype)
         else:
-            self.array = ds.pixel_array
+            self.array = ds.pixel_array.copy()
         # convert values to HU or CU: real_values = slope * raw + intercept
         is_ct_storage = self.metadata.SOPClassUID.name == 'CT Image Storage'
         has_rescale_tags = hasattr(self.metadata, 'RescaleSlope') and hasattr(self.metadata, 'RescaleIntercept')

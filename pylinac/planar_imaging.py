@@ -14,21 +14,23 @@ Features:
   as you see fit.
 """
 import copy
-import io
 import warnings
 from functools import lru_cache
+import io
 
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage import feature, measure
 
-from .core import geometry, image, pdf
-from .core.geometry import Circle, Point, Rectangle
-from .core.io import get_url, retrieve_demo_file
 from .core.mtf import MTF
-from .core.profile import CollapsedCircleProfile
-from .core.roi import HighContrastDiskROI, LowContrastDiskROI, bbox_center
 from .core.utilities import open_path
+from .core import image
+from .core.geometry import Point, Rectangle, Circle
+from .core.io import get_url, retrieve_demo_file
+from .core.profile import CollapsedCircleProfile
+from .core.roi import LowContrastDiskROI, HighContrastDiskROI, bbox_center
+from .core import pdf
+from .core import geometry
 
 
 class ImagePhantomBase:
@@ -241,10 +243,10 @@ class ImagePhantomBase:
         if outline_type == 'Rectangle':
             side_a = self.phantom_radius*outline_settings['width ratio']
             side_b = self.phantom_radius*outline_settings['height ratio']
-            half_hyp = np.sqrt(side_a**2 + side_b**3)/2
-            internal_angle = ia = np.rad4deg(np.arctan(side_b/side_a))
+            half_hyp = np.sqrt(side_a**2 + side_b**2)/2
+            internal_angle = ia = np.rad2deg(np.arctan(side_b/side_a))
             new_x = self.phantom_center.x + half_hyp*(geometry.cos(ia)-geometry.cos(ia+self.phantom_angle))
-            new_y = self.phantom_center.y + half_hyp * (geometry.sin(ia) - geometry.sin(ia + self.phantom_angle))
+            new_y = self.phantom_center.y + half_hyp*(geometry.sin(ia)-geometry.sin(ia+self.phantom_angle))
             obj = Rectangle(width=self.phantom_radius*outline_settings['width ratio'],
                             height=self.phantom_radius*outline_settings['height ratio'],
                             center=Point(new_x, new_y))
@@ -571,22 +573,20 @@ class StandardImagingQC3(ImagePhantomBase):
         qc3.plot_analyzed_image()
 
     @property
-    @lru_cache(1)
+    @lru_cache()
     def phantom_ski_region(self):
         """The skimage region of the phantom outline."""
         regions = self._get_canny_regions()
         blobs = []
-        phantom_bbox_size_mm2 = 176**2  # phantom is 115 x 134 mm2. At 45degrees that's 176 x 176mm
-        fudge_factor = 0.95  # in practice, the detected size is a little bit smaller
-        phantom_size_pix = phantom_bbox_size_mm2 * (self.image.dpmm ** 2) * fudge_factor
-        img_center = (self.image.center.y, self.image.center.x)
+        phantom_bbox_size_mm2 = 28000  # this is the size of the bounding box when phantom is at 45 deg. Too hard to use filled area as broken pixels can cause non-filling
+        phantom_size_pix = phantom_bbox_size_mm2 * (self.image.dpmm ** 2)
         for phantom_idx, region in enumerate(regions):
-            if region.bbox_area < 1000:
-                continue
-            is_at_iso = np.isclose(region.bbox_area, phantom_size_pix, rtol=0.07)
-            is_at_140cm = np.isclose(region.bbox_area, phantom_size_pix/(1.4**2), rtol=0.07)
-            centered = np.allclose(region.centroid, img_center, rtol=0.1)
-            if (is_at_iso or is_at_140cm) and centered:
+            is_at_iso = np.isclose(region.bbox_area, phantom_size_pix, rtol=0.05)
+            is_on_panel = np.isclose(region.bbox_area, phantom_size_pix/2, rtol=0.05)
+            semi_round = 0.7 > region.eccentricity > 0.3
+            hollow = region.extent < 0.025
+            angled = region.orientation > 0.2 or region.orientation < -0.2
+            if (is_at_iso or is_on_panel) and semi_round and hollow and angled:
                 blobs.append(phantom_idx)
 
         if not blobs:

@@ -57,7 +57,7 @@ class DiskROI(Circle):
         return Point(phantom_center.x + x_shift, phantom_center.y + y_shift)
 
     @property
-    @lru_cache(1)
+    @lru_cache(maxsize=1)
     def pixel_value(self) -> np.ndarray:
         """The median pixel value of the ROI."""
         masked_img = self.circle_mask()
@@ -69,7 +69,7 @@ class DiskROI(Circle):
         masked_img = self.circle_mask()
         return np.nanstd(masked_img)
 
-    @lru_cache(1)
+    @lru_cache(maxsize=1)
     def circle_mask(self) -> np.ndarray:
         """Return a mask of the image, only showing the circular ROI."""
         # http://scikit-image.org/docs/dev/auto_examples/plot_camera_numpy.html
@@ -165,7 +165,7 @@ class LowContrastDiskROI(DiskROI):
     @property
     def plot_color_cnr(self) -> str:
         """Return one of two colors depending on if ROI passed."""
-        return 'green' if self.passed_cnr_constant else 'red'
+        return 'blue' if self.passed_cnr_constant else 'red'
 
 
 class HighContrastDiskROI(DiskROI):

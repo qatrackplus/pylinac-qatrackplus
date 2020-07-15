@@ -24,6 +24,7 @@ import argue
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 from pylinac.core.typing import NumberLike
 from pylinac.core.utilities import open_path
 
@@ -189,7 +190,7 @@ class PicketFence:
         return np.argmax(picket.error_array)
 
     @property
-    @lru_cache(1)
+    @lru_cache(maxsize=1)
     def abs_median_error(self) -> float:
         """Return the median error found."""
         return np.median(np.hstack([picket.error_array for picket in self.pickets]))
@@ -567,7 +568,7 @@ class Settings:
         return 20 if not self.hdmlc else 28
 
     @property
-    @lru_cache(1)
+    @lru_cache(maxsize=1)
     def leaf_centers(self) -> np.ndarray:
         """Return a set of leaf centers perpendicular to the leaf motion based on the position of the CAX."""
         # generate a set of leaf center points based on physical widths of large and small leaves
@@ -723,7 +724,7 @@ class Picket:
         return np.round(np.median(np.diff(self.settings.leaf_centers) * 2 / 5) / 2).astype(int)
 
     @property
-    @lru_cache(1)
+    @lru_cache(maxsize=1)
     def picket_array(self) -> np.ndarray:
         """A slice of the whole image that contains the area around the picket."""
         if self.settings.orientation == UP_DOWN:
@@ -757,7 +758,7 @@ class Picket:
         return self.error_array.max()
 
     @property
-    @lru_cache(1)
+    @lru_cache(maxsize=1)
     def error_array(self) -> np.ndarray:
         """An array containing the error values of all the measurements."""
         return np.array([meas.error for meas in self.mlc_meas])
@@ -889,7 +890,7 @@ class MLCMeas(Line):
             return self.error < self.settings.action_tolerance
 
     @property
-    @lru_cache(1)
+    @lru_cache(maxsize=1)
     def leaf_pair(self) -> Tuple[int, int]:
         """The leaf pair that formed the MLC measurement.
 

@@ -17,26 +17,24 @@ Features:
 * **File name interpretation** - Rename DICOM filenames to include axis information for linacs that don't include
   such information in the DICOM tags. E.g. "myWL_gantry45_coll0_couch315.dcm".
 """
+from functools import lru_cache
+from itertools import zip_longest
 import io
 import math
 import os.path as osp
-from functools import lru_cache
-from itertools import zip_longest
-from textwrap import wrap
-from typing import List, Tuple, Union
+from typing import Union, List, Tuple
 
 import argue
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import linalg, ndimage, optimize
+from scipy import ndimage, optimize, linalg
 from skimage import measure
 
-from .core import image, pdf
-from .core.geometry import Circle, Line, Point, Vector, cos, sin
-from .core.io import (TemporaryZipDirectory, get_url, is_dicom_image,
-                      retrieve_demo_file)
-from .core.mask import bounding_box, filled_area_ratio
-from .core.profile import SingleProfile
+from .core import image
+from .core.geometry import Point, Line, Vector, cos, sin
+from .core.io import TemporaryZipDirectory, get_url, retrieve_demo_file, is_dicom_image
+from .core.mask import filled_area_ratio, bounding_box
+from .core import pdf
 from .core.utilities import is_close, open_path
 
 GANTRY = 'Gantry'
@@ -161,7 +159,7 @@ class WinstonLutz:
         print(wl.results())
         wl.plot_summary()
 
-    @lru_cache(1)
+    @lru_cache()
     def _minimize_axis(self, axes=(GANTRY,)):
         """Return the minimization result of the given axis."""
         if isinstance(axes, str):
@@ -452,11 +450,7 @@ class WinstonLutz:
 
         # create plots
         max_num_images = math.ceil(len(images)/4)
-        dpi = 72
-        width_px = 1080
-        width_in = width_px/dpi
-        height_in = (width_in / 4) * max_num_images
-        fig, axes = plt.subplots(nrows=max_num_images, ncols=4, figsize=(width_in, height_in))
+        fig, axes = plt.subplots(nrows=max_num_images, ncols=4)
         for mpl_axis, wl_image in zip_longest(axes.flatten(), images):
             plot_image(wl_image, mpl_axis)
 
@@ -788,7 +782,7 @@ class WLImage(image.LinacDicomImage):
         ax.set_xlim([self.rad_field_bounding_box[2], self.rad_field_bounding_box[3]])
         ax.set_yticklabels([])
         ax.set_xticklabels([])
-        ax.set_title('\n'.join(wrap(self.file, 30)), fontsize=10)
+        ax.set_title(self.file)
         ax.set_xlabel(f"G={self.gantry_angle:.0f}, B={self.collimator_angle:.0f}, P={self.couch_angle:.0f}")
         ax.set_ylabel(f"CAX to BB: {self.cax2bb_distance:3.2f}mm")
         if show:
